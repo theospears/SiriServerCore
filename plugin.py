@@ -124,7 +124,7 @@ class Plugin(threading.Thread):
         self.__priority = False
         self.__shouldCancel = False
     
-    def initialize(self, method, speech, language, send_object, send_plist, assistant, location):
+    def initialize(self, method, speech, language, send_object, send_plist, assistant, location, match):
         super(Plugin, self).__init__()
         self.__method = method
         self.__lang = language
@@ -133,6 +133,7 @@ class Plugin(threading.Thread):
         self.__send_object = send_object
         self.assistant = assistant
         self.location = location
+        self.__match = match
         self.__shouldCancel = False
         self.__priority = False
         
@@ -147,7 +148,7 @@ class Plugin(threading.Thread):
                 if len(arguments) == 3:
                     self.__method(self, self.__speech, self.__lang)
                 elif len(arguments) == 4:
-                    self.__method(self, self.__speech, self.__lang, self.__method.__dict__[__criteria_key__][self.__lang].match(self.__speech))
+                    self.__method(self, self.__speech, self.__lang, self.__match)
                 if self.__priority:
                     PluginManager.prioritizePluginObject(self, self.assistant.assistantId)
                 else:

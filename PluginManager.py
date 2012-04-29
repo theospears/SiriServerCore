@@ -84,9 +84,10 @@ def getPlugin(speech, languages):
         for language in languages:
             if language in plugin_actions:
                 for (regex, method) in plugin_actions[language]:
-                    if regex.match(speech) != None:
-                        return (clazz, method)
-    return (None, None)
+                    match = regex.match(speech)
+                    if match != None:
+                        return (clazz, method, match)
+    return (None, None, None)
 
 def clearPriorityFor(assistantId):
     if assistantId in prioritizedPlugins:
@@ -105,9 +106,10 @@ def searchPrioritizedPlugin(assistantId, speech, languages):
         for language in languages:
             if language in plugin_actions:
                 for (regex, method) in plugin_actions[language]:
-                    if regex.match(speech) != None:
-                        return (pluginObj, method)
-    return (None, None)
+                    match = regex.match(speech)
+                    if match != None:
+                        return (pluginObj, method, match)
+    return (None, None, None)
 
 def getLanguageCodes(language):
     languages = list()
@@ -122,18 +124,18 @@ def getPluginForImmediateExecution(assistantId, speech, language, otherPluginPar
     (sendObj, sendPlist, assistant, location) = otherPluginParams
     languages = getLanguageCodes(language)
 
-    (pluginObj, method) = searchPrioritizedPlugin(assistantId, speech, languages)
+    (pluginObj, method, match) = searchPrioritizedPlugin(assistantId, speech, languages)
     if pluginObj == None and method == None:
-        (clazz, method) = getPlugin(speech, languages)
+        (clazz, method, match) = getPlugin(speech, languages)
         if clazz != None and method != None:
             logger.debug("Instantiating plugin and method: {0}.{1}".format(clazz.__name__, method.__name__))
             pluginObj = clazz()
-            pluginObj.initialize(method, speech, language, sendObj, sendPlist, assistant, location)
+            pluginObj.initialize(method, speech, language, sendObj, sendPlist, assistant, location, match)
             #prioritizePluginObject(pluginObj, assistantId)
     else:
         #reinitialize it
         logger.info("Found a matching prioritized plugin")
-        pluginObj.initialize(method, speech, language, sendObj, sendPlist, assistant, location)
+        pluginObj.initialize(method, speech, language, sendObj, sendPlist, assistant, location, match)
     
     return pluginObj
         
