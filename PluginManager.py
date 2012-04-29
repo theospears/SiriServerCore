@@ -4,6 +4,7 @@ from types import FunctionType
 import logging
 import os
 import re
+import languageutils
 
 
 
@@ -111,18 +112,9 @@ def searchPrioritizedPlugin(assistantId, speech, languages):
                         return (pluginObj, method, match)
     return (None, None, None)
 
-def getLanguageCodes(language):
-    languages = list()
-    while True:
-        languages.append(language)
-        if '-' not in language:
-            break
-        language = re.sub('-[^-]*$', '', language)
-    return languages
-
 def getPluginForImmediateExecution(assistantId, speech, language, otherPluginParams):
     (sendObj, sendPlist, assistant, location) = otherPluginParams
-    languages = getLanguageCodes(language)
+    languages = languageutils.getCompatibleCodes(language)
 
     (pluginObj, method, match) = searchPrioritizedPlugin(assistantId, speech, languages)
     if pluginObj == None and method == None:
