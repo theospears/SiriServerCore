@@ -15,7 +15,7 @@ __apikeys_file__ = "apiKeys.conf"
 
 
 
-plugins = dict()
+plugins = list()
 prioritizedPlugins = dict()
 apiKeys = dict()
 
@@ -38,6 +38,7 @@ def load_plugins():
     # as they are loaded in the order in the file we will have the same order in __subclasses__()... I hope
 
     for clazz in Plugin.__subclasses__():
+        plugin_actions = dict()
         # look at all functions of a class lets filter them first
         methods = filter(lambda x: type(x) == FunctionType, clazz.__dict__.values())
         # now we check if the method is decorated by register
@@ -45,10 +46,11 @@ def load_plugins():
             if __criteria_key__ in method.__dict__:
                 criterias = method.__dict__[__criteria_key__]
                 for lang, regex in criterias.items():
-                    if not lang in plugins:
-                        plugins[lang] = []
+                    if not lang in plugin_actions:
+                        plugin_actions[lang] = []
                     # yeah... save the regex, the clazz and the method, shit just got loaded...
-                    plugins[lang].append((regex, clazz, method))
+                    plugin_actions[lang].append((regex, method))
+        plugins.append((clazz, plugin_actions))
 
 
 def reload_api_keys():
@@ -77,11 +79,13 @@ def getAPIKeyForAPI(APIname):
         return apiKeys[apiName]
     return None
 
-def getPlugin(speech, language):
-    if language in plugins:
-        for (regex, clazz, method) in plugins[language]:
-            if regex.match(speech) != None:
-                return (clazz, method)
+def getPlugin(speech, languages):
+    for (clazz, plugin_actions) in plugins:
+        for language in languages:
+            if language in plugin_actions:
+                for (regex, method) in plugin_actions[language]:
+                    if regex.match(speech) != None:
+                        return (clazz, method)
     return (None, None)
 
 def clearPriorityFor(assistantId):
@@ -89,28 +93,38 @@ def clearPriorityFor(assistantId):
         del prioritizedPlugins[assistantId]
 
 def prioritizePluginObject(pluginObj, assistantId):
-    prioritizedPlugins[assistantId] = dict()
-    for lang in plugins.keys():
-        for (regex, clazz, method) in plugins[lang]:
-            if pluginObj.__class__ == clazz:
-                if not lang in prioritizedPlugins[assistantId]:
-                    prioritizedPlugins[assistantId][lang] = []
-                prioritizedPlugins[assistantId][lang].append((regex, pluginObj, method))
+    clearPriorityFor(assistantId)
+    for (clazz, plugin_actions) in plugins:
+      if pluginObj.__class__ == clazz:
+        prioritizedPlugins[assistantId] = (pluginObj, plugin_actions)
+        break
 
-def searchPrioritizedPlugin(assistantId, speech, language):
+def searchPrioritizedPlugin(assistantId, speech, languages):
     if assistantId in prioritizedPlugins:
-        if language in prioritizedPlugins[assistantId]:
-            for (regex, pluginObj, method) in prioritizedPlugins[assistantId][language]:
-                if regex.match(speech) != None:
-                    return (pluginObj, method)
+        (pluginObj, plugin_actions) = prioritizedPlugins[assistantId]
+        for language in languages:
+            if language in plugin_actions:
+                for (regex, method) in plugin_actions[language]:
+                    if regex.match(speech) != None:
+                        return (pluginObj, method)
     return (None, None)
+
+def getLanguageCodes(language):
+    languages = list()
+    while True:
+        languages.append(language)
+        if '-' not in language:
+            break
+        language = re.sub('-[^-]*$', '', language)
+    return languages
 
 def getPluginForImmediateExecution(assistantId, speech, language, otherPluginParams):
     (sendObj, sendPlist, assistant, location) = otherPluginParams
+    languages = getLanguageCodes(language)
 
-    (pluginObj, method) = searchPrioritizedPlugin(assistantId, speech, language)
+    (pluginObj, method) = searchPrioritizedPlugin(assistantId, speech, languages)
     if pluginObj == None and method == None:
-        (clazz, method) = getPlugin(speech, language)
+        (clazz, method) = getPlugin(speech, languages)
         if clazz != None and method != None:
             logger.debug("Instantiating plugin and method: {0}.{1}".format(clazz.__name__, method.__name__))
             pluginObj = clazz()
