@@ -6,7 +6,7 @@ def getCompatibleCodes(language):
         languages.append(language)
         if '-' not in language:
             break
-        language = re.sub('-[^-]*$', '', language)
+        language = language[:language.rfind('-')]
     return languages
 
 def matches(baseLanguage, specificLanguage):
