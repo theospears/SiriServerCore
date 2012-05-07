@@ -24,6 +24,7 @@ import sqlite3
 import time
 import twisted
 import uuid
+import logging
 
        
 
@@ -124,6 +125,7 @@ class SiriProtocolHandler(Siri):
                         self.send_object(recognized)
                         self.current_running_plugin.start()
                     else:
+                        logging.getLogger('SiriProtocolHandler.UnrecognisedUtterance').debug(best_match)
                         self.send_object(recognized)
                         view = UIAddViews(requestId)
                         errorText = SiriProtocolHandler.__not_recognized[self.assistant.language] if self.assistant.language in SiriProtocolHandler.__not_recognized else SiriProtocolHandler.__not_recognized["en-US"]

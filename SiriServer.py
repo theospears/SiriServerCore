@@ -206,19 +206,27 @@ def main():
     parser.add_option('--logfile', default=None, dest='logfile', help='Log to a file instead of stdout.')
     parser.add_option('-m', '--maxConnections', default=None, type='int', dest='maxConnections', help='You can limit the number of maximum simultaneous connections with that switch')
     parser.add_option('-n', '--noSSL', action="store_true", default=False, dest='sslDisabled', help='You can switch off SSL with this switch.')
+    parser.add_option('--logUnrecognised', default=None, dest='logUnrecognised', help='Log any unrecognised user commands to this file.')
     (options, _) = parser.parse_args()
     
     x = logging.getLogger()
-    x.setLevel(log_levels[options.logLevel])
+    x.setLevel(logging.NOTSET)
     
     if options.logfile != None:
         h = logging.FileHandler(options.logfile)
     else:
         h = logging.StreamHandler()
     
+    h.setLevel(log_levels[options.logLevel])
     f = logging.Formatter(u"%(levelname)s %(message)s")
     h.setFormatter(f)
     x.addHandler(h)
+
+    if options.logUnrecognised:
+      unrecognisedHandler = logging.FileHandler(options.logUnrecognised)
+      unrecognisedHandler.setFormatter(logging.Formatter(u"%(asctime)s %(message)s"))
+      unrecognisedHandler.addFilter(logging.Filter(u"SiriProtocolHandler.UnrecognisedUtterance"))
+      x.addHandler(unrecognisedHandler)
     
     if not options.sslDisabled:
         create_self_signed_cert()
